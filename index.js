@@ -1,0 +1,29 @@
+const express= require("express");
+const mongoose= require("mongoose");
+require("dotenv").config();
+
+const authRoute = require("./routes/auth");
+const userRoute= require("./routes/user");
+const roleRoute= require("./routes/role")
+const classRouter= require("./routes/class")
+const studentRouter= require("./routes/student");
+const cors = require("cors");
+const path = require("path");
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+mongoose
+  .connect("mongodb://127.0.0.1:27017/my-project")
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log(err));
+
+app.use("/api/auth", authRoute);
+app.use("/api/user", userRoute);
+app.use("/api/role", roleRoute);
+app.use("/api/class",classRouter);
+app.use("/api/student",studentRouter);
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
+});
