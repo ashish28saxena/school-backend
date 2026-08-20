@@ -7,6 +7,7 @@ const userRoute= require("./routes/user");
 const roleRoute= require("./routes/role")
 const classRouter= require("./routes/class")
 const studentRouter= require("./routes/student");
+const attendenceRouter=require("./routes/attendence");
 const cors = require("cors");
 const path = require("path");
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/user", userRoute);
 app.use("/api/role", roleRoute);
 app.use("/api/class",classRouter);
 app.use("/api/student",studentRouter);
+app.use("/api/attendence",attendenceRouter);
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
 });

@@ -78,5 +78,19 @@ router.delete("/delete/:id",async(req,resp)=>{
     resp.send(result) 
 })
 
+router.get("/search",async(req,resp)=>{
+    const search=req.query.q
+     let result=  await Student.find({
+         $or:[
+                {name:{$regex:search,$options:"i"}},
+                {className:{$regex:search,$options:"i"}},
+                
+            ]
+
+     })
+     resp.send(result)  
+      
+})
+
 
 module.exports=router;
