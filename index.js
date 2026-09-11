@@ -8,6 +8,8 @@ const roleRoute= require("./routes/role")
 const classRouter= require("./routes/class")
 const studentRouter= require("./routes/student");
 const attendenceRouter=require("./routes/attendence");
+const subjectRouter=require("./routes/subject");
+const teacherRouter=require("./routes/teacher")
 const cors = require("cors");
 const path = require("path");
 const app = express();
@@ -26,6 +28,8 @@ app.use("/api/role", roleRoute);
 app.use("/api/class",classRouter);
 app.use("/api/student",studentRouter);
 app.use("/api/attendence",attendenceRouter);
+app.use("/api/subject",subjectRouter);
+app.use("/api/teacher",teacherRouter);
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
 });
