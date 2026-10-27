@@ -1,6 +1,19 @@
-const mongoose= require("mongoose");
-const sectionSchema new mongoose.Schema({
-    sectionName:String
-})
+const mongoose = require("mongoose");
 
-module.exports=mongoose.model("Section","sectionSchema")
+const sectionSchema = new mongoose.Schema(
+  {
+    sectionName: {
+      type: String,
+      required: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+module.exports = mongoose.model("Section", sectionSchema);

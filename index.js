@@ -9,7 +9,10 @@ const classRouter= require("./routes/class")
 const studentRouter= require("./routes/student");
 const attendenceRouter=require("./routes/attendence");
 const subjectRouter=require("./routes/subject");
-const teacherRouter=require("./routes/teacher")
+const teacherRouter=require("./routes/teacher");
+const sectionRouter = require("./routes/section");
+const assignSubjectRouter = require("./routes/assignSubject");
+const assignClassRouter = require("./routes/assignClass");
 const cors = require("cors");
 const path = require("path");
 const app = express();
@@ -30,6 +33,9 @@ app.use("/api/student",studentRouter);
 app.use("/api/attendence",attendenceRouter);
 app.use("/api/subject",subjectRouter);
 app.use("/api/teacher",teacherRouter);
+app.use("/api/section", sectionRouter);
+app.use("/api/assignsubject",assignSubjectRouter);
+app.use("/api/assignclass",assignClassRouter);
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
 });
