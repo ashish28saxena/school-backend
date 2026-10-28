@@ -224,6 +224,29 @@ const uploadField = async (files, fieldName, folder) => {
   return result.secure_url;
 };
 
+router.get("/test-cloudinary", async (req, res) => {
+  try {
+    const result = await cloudinary.api.ping();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cloudinary credentials are valid",
+      status: result.status,
+    });
+  } catch (error) {
+    console.error("Cloudinary authentication failed:", {
+      message: error.message,
+      http_code: error.http_code,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Cloudinary authentication failed",
+      error: error.message,
+    });
+  }
+});
+
 // SUBMIT STUDENT
 router.post(
   "/submit",
