@@ -51,14 +51,15 @@ router.post("/login", async (req, resp) => {
 
 router.post("/register", async (req, resp) => {
     try {
-        const { name, email, password,gender,phoneNumber } = req.body;
+        const { name, email, password,gender,phoneNumber,roleId } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({
             name,
             email,
             password: hashedPassword,
             gender,
-            phoneNumber
+            phoneNumber,
+            roleId
 
         })
 
