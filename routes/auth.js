@@ -88,7 +88,7 @@ router.post("/register", async (req, resp) => {
         const token = generateToken(user);
         resp.status(200).json({
             success: true,
-            token
+            token,
             message: "Login Successful",
             
         });
