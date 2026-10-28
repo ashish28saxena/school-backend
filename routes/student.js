@@ -191,7 +191,7 @@ const uploadToCloudinary = (file, folder) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: `school-management/${folder}`,
+        folder: `school-management/${folder}`, 
         resource_type: "auto",
       },
       (error, result) => {
