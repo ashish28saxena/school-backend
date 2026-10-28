@@ -5,6 +5,26 @@ const User = require("../models/User")
 
 const router = express.Router();
 
+// JWT TOKEN GENERATOR
+const generateToken = (user) => {
+  const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET environment variable is missing");
+  }
+
+  return jwt.sign(
+    {
+      userId: user._id,
+      email: user.email,
+    },
+    jwtSecret,
+    {
+      expiresIn: "7d",
+    }
+  );
+};
+
 router.post("/login", async (req, resp) => {
     try {
         const { email, password } = req.body;
@@ -30,10 +50,11 @@ router.post("/login", async (req, resp) => {
                 message: "Invalid Email or Password"
             });
         }
-
+        const token = generateToken(user);            
         resp.status(200).json({
             success: true,
             message: "Login Successful",
+            token,
             user: {
                 id: user._id,
                 name: user.name,
@@ -64,8 +85,10 @@ router.post("/register", async (req, resp) => {
         })
 
         await user.save();
+        const token = generateToken(user);
         resp.status(200).json({
             success: true,
+            token
             message: "Login Successful",
             
         });
