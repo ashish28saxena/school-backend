@@ -12,7 +12,7 @@ const studentSchema = new mongoose.Schema({
     motherOccupation: String,
     parentMobile: String,
     admissionNumber: String,
-    className: String,
+    
     academicYear: String,
     previousSchool: String,
     studentEmail: String,
@@ -26,6 +26,14 @@ const studentSchema = new mongoose.Schema({
     aadhaarCard: String,
     transferCertificate: String,
     previousMarksheet: String,
+    className:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Class",      // Class model ka exact naam
+    },
+    sectionName:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Section",    // Section model ka exact naam
+    },
 
 })
 

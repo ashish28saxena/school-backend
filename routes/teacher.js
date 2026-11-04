@@ -225,4 +225,126 @@ router.get("/edit/:id", async (req, resp) => {
     }
 });
 
+
+
+router.put(
+  "/update/:id",
+  upload.fields([{ name: "profileImage", maxCount: 1 }]),
+  async (req, resp) => {
+    try {
+      const { id } = req.params;
+
+      const {
+        firstName,
+        lastName,
+        gender,
+        dateOfBirth,
+        mobileNumber,
+        email,
+        employeeID,
+        qualification,
+        experience,
+        joiningDate,
+        department,
+        employmentType,
+        address,
+        city,
+        state,
+        PINCode,
+        status,
+        password
+      } = req.body;
+
+      // Find Teacher
+      const teacherdata = await Teacher.findById(id);
+
+      if (!teacherdata) {
+        return resp.status(404).json({
+          success: false,
+          message: "Teacher not found"
+        });
+      }
+
+      // Find related User
+      const user = await User.findById(teacherdata.userId);
+
+      if (!user) {
+        return resp.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      // Update Teacher fields
+      if (firstName !== undefined) teacherdata.firstName = firstName;
+      if (lastName !== undefined) teacherdata.lastName = lastName;
+      if (gender !== undefined) teacherdata.gender = gender;
+      if (mobileNumber !== undefined) teacherdata.mobileNumber = mobileNumber;
+      //if (email !== undefined) teacherdata.email = email;
+      if (employeeID !== undefined) teacherdata.employeeID = employeeID;
+      if (qualification !== undefined) teacherdata.qualification = qualification;
+      if (experience !== undefined) teacherdata.experience = experience;
+      if (joiningDate !== undefined) teacherdata.joiningDate = joiningDate;
+      if (department !== undefined) teacherdata.department = department;
+      if (employmentType !== undefined) teacherdata.employmentType = employmentType;
+      if (address !== undefined) teacherdata.address = address;
+      if (city !== undefined) teacherdata.city = city;
+      if (state !== undefined) teacherdata.state = state;
+      if (PINCode !== undefined) teacherdata.PINCode = PINCode;
+      if (status !== undefined) teacherdata.status = status;
+
+      // Update DOB
+      if (dateOfBirth !== undefined && dateOfBirth !== "") {
+        const [day, month, year] = dateOfBirth.split("/");
+        const dob = new Date(`${year}-${month}-${day}`);
+
+        if (isNaN(dob.getTime())) {
+          return resp.status(400).json({
+            success: false,
+            message: "Invalid date of birth"
+          });
+        }
+
+        teacherdata.dateOfBirth = dob;
+      }
+
+      // Update Profile Image only if new image comes
+      if (req.files?.profileImage?.length > 0) {
+        teacherdata.profileImage = req.files.profileImage[0].filename;
+      }
+
+      // Update User details
+      if (firstName !== undefined || lastName !== undefined) {
+        user.name = `${firstName ?? teacherdata.firstName} ${lastName ?? teacherdata.lastName}`;
+      }
+
+     // if (email !== undefined) user.email = email;
+      if (mobileNumber !== undefined) user.phoneNumber = mobileNumber;
+      if (gender !== undefined) user.gender = gender;
+      if (status !== undefined) user.status = status;
+
+    
+
+      // Save both collections
+      await user.save();
+      await teacherdata.save();
+
+      return resp.status(200).json({
+        success: true,
+        message: "Teacher updated successfully",
+        data: teacherdata
+      });
+
+    } catch (error) {
+      console.log("Teacher Update Error:", error);
+
+      return resp.status(500).json({
+        success: false,
+        message: "Something went wrong",
+        error: error.message
+      });
+    }
+  }
+);
+
 module.exports= router;

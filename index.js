@@ -20,7 +20,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// MongoDB connection cache for Vercel serverless
+
 let cached = global.mongoose;
 
 if (!cached) {
@@ -113,8 +113,12 @@ app.use("/api/assignsubject",assignSubjectRouter);
 app.use("/api/assignclass",assignClassRouter);
 
 // Export Express app for Vercel
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
 module.exports = app;
-
-
-
-

@@ -16,6 +16,23 @@ router.get("/",async(req,resp)=>{
       }
 })
 
+router.get("/:id",async(req,resp)=>{
+      try{
+           const Subjectdata = await Subject.find({
+    classId: req.params.id
+});
+                       
+
+            resp.status(200).json({
+            success: true,
+            data: Subjectdata 
+        });
+      }catch(error)
+      {
+          console.log(error)
+      }
+})
+
 router.post("/submit",async(req,resp)=>{
       try{
             const { name,code,classId,subjectType,status}=req.body;
