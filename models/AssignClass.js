@@ -19,7 +19,12 @@ const assignClassSchema= new mongoose.Schema({
     academicYear:{
         type:String,
         required:true
-    }
+    },
+      status:{
+            type: Boolean,
+    default: true
+            
+        },
 
 }, { timestamps: true }
 
