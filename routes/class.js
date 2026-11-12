@@ -17,10 +17,10 @@ router.get("/",async(req,resp)=>{
 
 router.post("/submit",async(req,resp)=>{
     try{
-          const { className,classSection }= req.body;
+          const { className}= req.body;
           const classdats= new Class({
             className:className,
-            classSection:classSection
+            
           })
           let a=await classdats.save();
           resp.send({
@@ -46,7 +46,7 @@ router.put("/update/:id",async(req,resp)=>{
             req.params.id,
             {
              className:className,
-             classSection:classSection
+             
             }
          )
          resp.send(result)

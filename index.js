@@ -98,7 +98,9 @@ const teacherRouter=require("./routes/teacher");
 const sectionRouter = require("./routes/section");
 const assignSubjectRouter = require("./routes/assignSubject");
 const assignClassRouter = require("./routes/assignClass");
-
+const TeacherAttendance=require("./routes/teacherAttendance");
+const teacherSalaryRoutes = require("./routes/TeacherSalaryRoutes");
+const studentAttendanceRoutes = require("./routes/StudentAttendanceRoutes");
 // Register routes AFTER the database middleware
 app.use("/api/auth", authRoute);
 app.use("/api/user", userRoute);
@@ -111,6 +113,9 @@ app.use("/api/teacher",teacherRouter);
 app.use("/api/section", sectionRouter);
 app.use("/api/assignsubject",assignSubjectRouter);
 app.use("/api/assignclass",assignClassRouter);
+app.use("/api/teacherAttendance",TeacherAttendance);
+app.use("/api/teachersalary", teacherSalaryRoutes);
+app.use("/api/studentattendance",studentAttendanceRoutes);
 
 // Export Express app for Vercel
 

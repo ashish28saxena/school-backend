@@ -1,18 +1,25 @@
+
 const mongoose = require("mongoose");
 
 const sectionSchema = new mongoose.Schema(
   {
     sectionName: {
       type: String,
-      required: true
+      required: true,
     },
+
+    status: {
+      type: Boolean,
+      default: true,
+    },
+
     deletedAt: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
