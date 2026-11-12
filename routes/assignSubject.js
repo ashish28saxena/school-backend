@@ -1,192 +1,234 @@
+
 const express = require("express");
-const mongoose = require("mongoose"); // FIX: ye import missing tha
-const assignSubject = require("../models/AssignSubject");
+const mongoose = require("mongoose");
 const router = express.Router();
 
-const Teacher = require("../models/Teacher");
-const Class = require("../models/Class");
-const Section = require("../models/Section");
-const Subject = require("../models/Subject");
+const AssignSubject = require("../models/AssignSubject");
 
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-router.post("/submit", async (req, resp) => {
+// GET: Fetch all assigned subjects
+router.get("/", async (req, res) => {
   try {
-    const { teacherID, classId, sectionId, subjectId, status } = req.body;
-    let result = new assignSubject({
+    const result = await AssignSubject.find()
+      .populate("teacherID")
+      .populate("classId")
+      .populate("sectionId")
+      .populate("subjectId")
+      .sort({ _id: -1 });
+
+    res.status(200).json({
+      status: 200,
+      message: "Assigned subjects fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// POST: Assign Subject
+router.post("/submit", async (req, res) => {
+  try {
+    const {
       teacherID,
       classId,
       sectionId,
       subjectId,
+      academicYear,
       status,
-    });
-    await result.save();
-    resp.send({
-      status: 200,
-      message: "Assign Subject Sucessfully",
-    });
-  } catch (error) {
-    resp.send({
-      status: 500,
-      message: error.message,
-    });
-  }
-});
+    } = req.body;
 
-router.get("/filter-options", async (req, resp) => {
-  try {
-    const [classIds, sectionIds, subjectIds] = await Promise.all([
-      assignSubject.distinct("classId"),
-      assignSubject.distinct("sectionId"),
-      assignSubject.distinct("subjectId"),
-    ]);
-
-    const [classes, sections, subjects] = await Promise.all([
-      Class.find({ _id: { $in: classIds } }).sort({ className: 1 }),
-      Section.find({ _id: { $in: sectionIds } }).sort({ sectionName: 1 }),
-      Subject.find({ _id: { $in: subjectIds } }).sort({ name: 1 }),
-    ]);
-
-    return resp.status(200).json({
-      success: true,
-      classes,
-      sections,
-      subjects,
-    });
-  } catch (error) {
-    return resp.status(500).json({ success: false, message: error.message });
-  }
-});
-
-router.get("/", async (req, resp) => {
-  try {
-    let offset = parseInt(req.query.offset) || 0;
-    let limit = parseInt(req.query.limit) || 10;
-
-    offset = Math.max(0, offset);
-    limit = Math.max(1, Math.min(100, limit));
-
-    const { search, classId, sectionId, subjectId, status } = req.query;
-    const filter = {};
-
-    // Class / Section / Subject (valid ObjectId ho tabhi lagao)
-    if (classId && mongoose.isValidObjectId(classId)) filter.classId = classId;
-    if (sectionId && mongoose.isValidObjectId(sectionId))
-      filter.sectionId = sectionId;
-    if (subjectId && mongoose.isValidObjectId(subjectId))
-      filter.subjectId = subjectId;
-
-    // Status: "true" / "false"
-    if (status === "true") filter.status = true;
-    if (status === "false") filter.status = false;
-
-    // Teacher search: pehle naam se teacher dhoondo, phir unki IDs se filter
-    if (search && search.trim()) {
-      const words = search.trim().split(/\s+/).map(escapeRegex);
-
-      // Har word firstName ya lastName me milna chahiye ("ram sharma" bhi chalega)
-      const teachers = await Teacher.find({
-        $and: words.map((w) => ({
-          $or: [
-            { firstName: { $regex: w, $options: "i" } },
-            { lastName: { $regex: w, $options: "i" } },
-          ],
-        })),
-      }).select("_id");
-
-      filter.teacherID = { $in: teachers.map((t) => t._id) };
-    }
-
-    const [result, total] = await Promise.all([
-      assignSubject
-        .find(filter)
-        .populate("teacherID")
-        .populate("classId")
-        .populate("sectionId")
-        .populate("subjectId")
-        .sort({ _id: -1 })
-        .skip(offset)
-        .limit(limit),
-      assignSubject.countDocuments(filter), // filter ke hisaab se total
-    ]);
-
-    return resp.status(200).json({
-      success: true,
-      total,
-      offset,
-      limit,
-      data: result,
-      status: 200,
-      message: "data fetch Sucessfully",
-    });
-  } catch (error) {
-    return resp.status(500).json({
-      success: false,
-      status: 500,
-      message: error.message,
-    });
-  }
-});
-
-router.get("/edit/:id", async (req, resp) => {
-  try {
-    let result = await assignSubject.findById(req.params.id);
-    resp.send({
-      status: 200,
-      data: result,
-      message: "data fetch Sucessfully",
-    });
-  } catch (error) {
-    resp.send({
-      status: 500,
-      message: error.message,
-    });
-  }
-});
-
-router.put("/update/:id", async (req, resp) => {
-  try {
-    const { teacherID, classId, sectionId, subjectId, status } = req.body;
-    let result = await assignSubject.findByIdAndUpdate(req.params.id, {
-      teacherID,
-      classId,
-      sectionId,
-      subjectId,
-      status,
-    });
-    resp.send({
-      status: 200,
-      message: "data Update Sucessfully",
-      data: result,
-    });
-  } catch (error) {
-    resp.send({
-      status: 500,
-      message: error.message,
-    });
-  }
-});
-
-router.delete("/delete/:id", async (req, resp) => {
-  try {
-    const result = await assignSubject.findByIdAndDelete(req.params.id);
-
-    if (!result) {
-      return resp.status(404).json({
-        status: 404,
-        message: "Assign Subject not found",
+    if (
+      !teacherID ||
+      !classId ||
+      !sectionId ||
+      !subjectId ||
+      !academicYear
+    ) {
+      return res.status(400).json({
+        status: 400,
+        message: "Please fill all required fields",
       });
     }
 
-    return resp.status(200).json({
-      status: 200,
-      message: "Assign Subject deleted successfully",
+    const ids = [teacherID, classId, sectionId, subjectId];
+
+    if (!ids.every((id) => mongoose.isValidObjectId(id))) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid ID provided",
+      });
+    }
+
+    const isActive = status !== false;
+
+    if (isActive) {
+      const existing = await AssignSubject.findOne({
+        classId,
+        sectionId,
+        subjectId,
+        academicYear,
+        status: true,
+      });
+
+      if (existing) {
+        return res.status(409).json({
+          status: 409,
+          message: "This subject is already assigned to this class and section",
+        });
+      }
+    }
+
+    const result = await AssignSubject.create({
+      teacherID,
+      classId,
+      sectionId,
+      subjectId,
+      academicYear,
+      status: isActive,
+    });
+
+    res.status(201).json({
+      status: 201,
+      message: "Subject assigned successfully",
       data: result,
     });
   } catch (error) {
-    console.log("Delete Error:", error);
+    if (error.code === 11000) {
+      return res.status(409).json({
+        status: 409,
+        message: "This subject is already assigned to this class and section",
+      });
+    }
 
-    return resp.status(500).json({
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// PUT: Update assigned subject
+router.put("/update/:id", async (req, res) => {
+  try {
+    const {
+      teacherID,
+      classId,
+      sectionId,
+      subjectId,
+      academicYear,
+      status,
+    } = req.body;
+
+    if (
+      !teacherID ||
+      !classId ||
+      !sectionId ||
+      !subjectId ||
+      !academicYear
+    ) {
+      return res.status(400).json({
+        status: 400,
+        message: "Please fill all required fields",
+      });
+    }
+
+    const ids = [teacherID, classId, sectionId, subjectId];
+
+    if (!ids.every((id) => mongoose.isValidObjectId(id))) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid ID provided",
+      });
+    }
+
+    const current = await AssignSubject.findById(req.params.id);
+
+    if (!current) {
+      return res.status(404).json({
+        status: 404,
+        message: "Assignment not found",
+      });
+    }
+
+    const isActive = status !== false;
+
+    if (isActive) {
+      const duplicate = await AssignSubject.findOne({
+        _id: { $ne: req.params.id },
+        classId,
+        sectionId,
+        subjectId,
+        academicYear,
+        status: true,
+      });
+
+      if (duplicate) {
+        return res.status(409).json({
+          status: 409,
+          message: "This subject is already assigned to this class and section",
+        });
+      }
+    }
+
+    const result = await AssignSubject.findByIdAndUpdate(
+      req.params.id,
+      {
+        teacherID,
+        classId,
+        sectionId,
+        subjectId,
+        academicYear,
+        status: isActive,
+      },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      status: 200,
+      message: "Assignment updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        status: 409,
+        message: "Duplicate subject assignment",
+      });
+    }
+
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// DELETE: Deactivate assignment
+router.delete("/delete/:id", async (req, res) => {
+  try {
+    const result = await AssignSubject.findByIdAndUpdate(
+      req.params.id,
+      { status: false },
+      { new: true }
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        status: 404,
+        message: "Assignment not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: "Subject assignment deactivated successfully",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
       status: 500,
       message: error.message,
     });

@@ -1,104 +1,208 @@
-const express= require("express");
-const Subject= require("../models/Subject");
-const router= express.Router();
-router.get("/",async(req,resp)=>{
-      try{
-            const Subjectdata = await Subject.find()
-                        .populate("classId")
 
-            resp.status(200).json({
-            success: true,
-            data: Subjectdata
-        });
-      }catch(error)
-      {
-          console.log(error)
-      }
-})
+const express = require("express");
+const router = express.Router();
 
-router.get("/:id",async(req,resp)=>{
-      try{
-           const Subjectdata = await Subject.find({
-    classId: req.params.id
+const Subject = require("../models/Subject");
+
+
+router.get("/", async (req, res) => {
+  try {
+    const result = await Subject.find().sort({ _id: -1 });
+
+    res.status(200).json({
+      status: 200,
+      message: "Subject fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
 });
-                       
 
-            resp.status(200).json({
-            success: true,
-            data: Subjectdata 
-        });
-      }catch(error)
+// GET: Fetch single subject
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await Subject.findById(req.params.id);
+
+    if (!result) {
+      return res.status(404).json({
+        status: 404,
+        message: "Subject not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: "Subject fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// POST: Add subject
+router.post("/submit", async (req, res) => {
+  try {
+    const {
+      subjectName,
+      subjectCode,
+      subjectType,
+      description,
+      status,
+    } = req.body;
+
+    if (!subjectName || !subjectCode) {
+      return res.status(400).json({
+        status: 400,
+        message: "Subject name and subject code are required",
+      });
+    }
+
+    const existingSubject = await Subject.findOne({
+      subjectCode: subjectCode.trim().toUpperCase(),
+    });
+
+    if (existingSubject) {
+      return res.status(409).json({
+        status: 409,
+        message: "Subject code already exists",
+      });
+    }
+
+    const result = await Subject.create({
+      subjectName: subjectName.trim(),
+      subjectCode: subjectCode.trim().toUpperCase(),
+      subjectType: subjectType || "Core",
+      description: description || "",
+      status: status ?? true,
+    });
+
+    res.status(201).json({
+      status: 201,
+      message: "Subject added successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        status: 409,
+        message: "Subject code already exists",
+      });
+    }
+
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// PUT: Update subject
+router.put("/update/:id", async (req, res) => {
+  try {
+    const {
+      subjectName,
+      subjectCode,
+      subjectType,
+      description,
+      status,
+    } = req.body;
+
+    if (!subjectName || !subjectCode) {
+      return res.status(400).json({
+        status: 400,
+        message: "Subject name and subject code are required",
+      });
+    }
+
+    const existingSubject = await Subject.findOne({
+      subjectCode: subjectCode.trim().toUpperCase(),
+      _id: { $ne: req.params.id },
+    });
+
+    if (existingSubject) {
+      return res.status(409).json({
+        status: 409,
+        message: "Subject code already exists",
+      });
+    }
+
+    const result = await Subject.findByIdAndUpdate(
+      req.params.id,
       {
-          console.log(error)
-      }
-})
-
-router.post("/submit",async(req,resp)=>{
-      try{
-            const { name,code,classId,subjectType,status}=req.body;
-            const subjectdata= new Subject({
-                name,
-                code,
-                classId,
-                subjectType,
-                status
-            })
-            await subjectdata.save();
-            resp.status(200).json({
-            success: true,
-            message: "Subject Add sucessfully",
-
-        });
-      }catch(error)
+        subjectName: subjectName.trim(),
+        subjectCode: subjectCode.trim().toUpperCase(),
+        subjectType: subjectType || "Core",
+        description: description || "",
+        status: status ?? true,
+      },
       {
-          console.log(error)
+        new: true,
+        runValidators: true,
       }
-})
+    );
 
-router.put("/update/:id",async(req,resp)=>{
-    try{
-        const { name,code,classId,subjectType,status}=req.body;
-        const subjectdata= await Subject.findByIdAndUpdate(
-        req.params.id,
-        {
-            name,
-                code,
-                classId,
-                subjectType,
-                status
-        }
-    )
-    resp.status(200).json({
-            success: true,
-            message: "Update Subject sucessfully",
-
-        });
-
-    }catch(error)
-    {
-      console.log(error)
+    if (!result) {
+      return res.status(404).json({
+        status: 404,
+        message: "Subject not found",
+      });
     }
-})
 
-
-router.get("/edit/:id",async(req,resp)=>{
-    try{
-        let result= await Subject.findOne({_id:req.params.id})
-        resp.send(result)
-    }catch(error)
-    {
-        console.log(error)
+    res.status(200).json({
+      status: 200,
+      message: "Subject updated successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        status: 409,
+        message: "Subject code already exists",
+      });
     }
-})
 
-router.delete("/delete/:id",async(req,resp)=>{
-    try{
-        let result = await Subject.deleteOne({_id:req.params.id})
-        resp.send(result)
-    }catch(error)
-    {
-        console.log(error)
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+// DELETE: Deactivate subject
+router.delete("/delete/:id", async (req, res) => {
+  try {
+    const result = await Subject.findByIdAndUpdate(
+      req.params.id,
+      { status: false },
+      { new: true }
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        status: 404,
+        message: "Subject not found",
+      });
     }
-})
+
+    res.status(200).json({
+      status: 200,
+      message: "Subject deactivated successfully",
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
 
 module.exports = router;
