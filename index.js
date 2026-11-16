@@ -103,6 +103,22 @@ const teacherSalaryRoutes = require("./routes/TeacherSalaryRoutes");
 const studentAttendanceRoutes = require("./routes/StudentAttendanceRoutes");
 const assignClassTeacher = require("./routes/AssignClassTeacher");
 const assignStudentRoutes = require("./routes/AssignStudent");
+const timetableRoutes = require("./routes/Timetable");
+const examMark= require("./routes/ExamMark")
+const examRoutes = require("./routes/Exam");
+const examScheduleRoutes = require("./routes/ExamSchedule");
+const examResultRoutes = require("./routes/ExamResult");
+const reportCardRoutes = require("./routes/ReportCard");
+const admitCardRoutes = require("./routes/AdmitCard");
+const feeStructureRoutes = require("./routes/FeeStructure");
+const feeCollectionRoutes = require("./routes/FeeCollection");
+const feeDiscountRoutes = require("./routes/FeeDiscount");
+const feeDueReportRoutes = require("./routes/FeeDueReport");
+const feeReceiptRoutes = require("./routes/FeeReceipt");
+const feeInstallmentRoutes = require("./routes/FeeInstallment");
+const studentIdCardRoutes = require("./routes/StudentIdCard");
+const libraryRoutes = require("./routes/Library");
+
 // Register routes AFTER the database middleware
 app.use("/api/auth", authRoute);
 app.use("/api/user", userRoute);
@@ -120,6 +136,21 @@ app.use("/api/teachersalary", teacherSalaryRoutes);
 app.use("/api/studentattendance",studentAttendanceRoutes);
 app.use("/api/assignclassteacher",assignClassTeacher);
 app.use("/api/assignstudent", assignStudentRoutes);
+app.use("/api/timetable", timetableRoutes);
+app.use("/api/exam", examRoutes);
+app.use("/api/exammark",examMark)
+app.use("/api/examschedule", examScheduleRoutes);
+app.use("/api/examresult", examResultRoutes);
+app.use("/api/reportcard", reportCardRoutes);
+app.use("/api/admitcard", admitCardRoutes);
+app.use("/api/feestructure", feeStructureRoutes);
+app.use("/api/feecollection", feeCollectionRoutes);
+app.use("/api/feediscount", feeDiscountRoutes);
+app.use("/api/feedue", feeDueReportRoutes);
+app.use("/api/feereceipt", feeReceiptRoutes);
+app.use("/api/feeinstallment", feeInstallmentRoutes);
+app.use("/api/student-id-card", studentIdCardRoutes);
+app.use("/api/library", libraryRoutes);
 
 // Export Express app for Vercel
 

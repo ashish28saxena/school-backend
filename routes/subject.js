@@ -179,10 +179,8 @@ router.put("/update/:id", async (req, res) => {
 // DELETE: Deactivate subject
 router.delete("/delete/:id", async (req, res) => {
   try {
-    const result = await Subject.findByIdAndUpdate(
-      req.params.id,
-      { status: false },
-      { new: true }
+    const result = await Subject.findByIdAndDelete(
+      req.params.id
     );
 
     if (!result) {
