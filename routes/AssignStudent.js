@@ -6,9 +6,40 @@ const router = express.Router();
 const AssignStudent = require("../models/AssignStudent");
 
 // GET: All assigned students
+// router.get("/", async (req, res) => {
+//   try {
+//     const result = await AssignStudent.find()
+//       .populate("studentId")
+//       .populate("classId")
+//       .populate("sectionId")
+//       .sort({ _id: -1 });
+
+//     res.status(200).json({
+//       status: 200,
+//       message: "Assigned students fetched successfully",
+//       data: result,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       status: 500,
+//       message: error.message,
+//     });
+//   }
+// });
+
+
+// GET: All assigned students with optional classId filter
 router.get("/", async (req, res) => {
   try {
-    const result = await AssignStudent.find()
+    const { classId } = req.query;
+
+    const filter = {};
+
+    if (classId) {
+      filter.classId = classId;
+    }
+
+    const result = await AssignStudent.find(filter)
       .populate("studentId")
       .populate("classId")
       .populate("sectionId")
@@ -19,6 +50,7 @@ router.get("/", async (req, res) => {
       message: "Assigned students fetched successfully",
       data: result,
     });
+
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -26,6 +58,7 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
 
 // POST: Assign student
 router.post("/submit", async (req, res) => {

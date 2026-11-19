@@ -118,6 +118,9 @@ const feeReceiptRoutes = require("./routes/FeeReceipt");
 const feeInstallmentRoutes = require("./routes/FeeInstallment");
 const studentIdCardRoutes = require("./routes/StudentIdCard");
 const libraryRoutes = require("./routes/Library");
+const libraryExtrasRoutes = require("./routes/LibraryExtras");
+const transportRoutes = require("./routes/Transport");
+const parentRoutes = require("./routes/Parent");
 
 // Register routes AFTER the database middleware
 app.use("/api/auth", authRoute);
@@ -151,6 +154,9 @@ app.use("/api/feereceipt", feeReceiptRoutes);
 app.use("/api/feeinstallment", feeInstallmentRoutes);
 app.use("/api/student-id-card", studentIdCardRoutes);
 app.use("/api/library", libraryRoutes);
+app.use("/api/library-extra", libraryExtrasRoutes);
+app.use("/api/transport", transportRoutes);
+app.use("/api/parent", parentRoutes);
 
 // Export Express app for Vercel
 

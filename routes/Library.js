@@ -5,6 +5,9 @@ const router = express.Router();
 const BookCategory = require("../models/BookCategory");
 const Book = require("../models/Book");
 const BookIssue = require("../models/BookIssue");
+const AssignStudent = require("../models/AssignStudent");
+const FinePayment = require("../models/FinePayment");
+
 
 // ================= CATEGORY APIs =================
 
@@ -495,5 +498,284 @@ router.get("/reports", async (req, res) => {
     res.status(500).json({ status: 500, message: error.message });
   }
 });
+
+
+
+// Get students class-wise from AssignStudent
+router.get("/students", async (req, res) => {
+  try {
+    const { classId, academicYear } = req.query;
+
+    if (!classId) {
+      return res.status(400).json({
+        status: 400,
+        message: "Class ID is required",
+      });
+    }
+
+    const filter = {
+      classId,
+      status: true,
+    };
+
+    if (academicYear) {
+      filter.academicYear = academicYear;
+    }
+
+    const data = await AssignStudent.find(filter)
+      .populate("studentId")
+      .populate("classId", "className")
+      .populate("sectionId", "sectionName")
+      .sort({ rollNumber: 1 });
+
+    res.status(200).json({
+      status: 200,
+      message: "Students fetched successfully",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+
+// GET: Pending fine list
+router.get("/fine-pending", async (req, res) => {
+  try {
+    const issues = await BookIssue.find({
+      status: "Returned",
+      fineAmount: { $gt: 0 },
+    })
+      .populate("studentId")
+      .populate("bookId", "bookName bookCode")
+      .sort({ updatedAt: -1 });
+
+    const payments = await FinePayment.aggregate([
+      { $match: { status: true } },
+      {
+        $group: {
+          _id: "$issueId",
+          totalPaid: { $sum: "$amountPaid" },
+        },
+      },
+    ]);
+
+    const paymentMap = {};
+    payments.forEach((payment) => {
+      paymentMap[payment._id.toString()] = payment.totalPaid;
+    });
+
+    const data = issues
+      .map((item) => {
+        const totalFine = Number(item.fineAmount || 0);
+        const totalPaid = paymentMap[item._id.toString()] || 0;
+        const balance = Math.max(0, totalFine - totalPaid);
+
+        return {
+          ...item.toObject(),
+          totalFine,
+          totalPaid,
+          balance,
+          paymentStatus:
+            balance <= 0 ? "Paid" : totalPaid > 0 ? "Partial" : "Pending",
+        };
+      })
+      .filter((item) => item.balance > 0);
+
+    res.status(200).json({
+      status: 200,
+      message: "Pending fines fetched successfully",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+
+// POST: Collect fine payment
+router.post("/fine-collection", async (req, res) => {
+  try {
+    const {
+      issueId,
+      amountPaid,
+      paymentDate,
+      paymentMode,
+      transactionId,
+      remarks,
+    } = req.body;
+
+    if (!issueId || !amountPaid || !paymentMode) {
+      return res.status(400).json({
+        status: 400,
+        message: "Issue ID, amount and payment mode are required",
+      });
+    }
+
+    const amount = Number(amountPaid);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Enter a valid payment amount",
+      });
+    }
+
+    const issue = await BookIssue.findById(issueId);
+
+    if (!issue) {
+      return res.status(404).json({
+        status: 404,
+        message: "Book issue record not found",
+      });
+    }
+
+    if (issue.status !== "Returned") {
+      return res.status(400).json({
+        status: 400,
+        message: "Fine can only be collected after book return",
+      });
+    }
+
+    const paidResult = await FinePayment.aggregate([
+      {
+        $match: {
+          issueId: issue._id,
+          status: true,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalPaid: { $sum: "$amountPaid" },
+        },
+      },
+    ]);
+
+    const totalPaid = paidResult[0]?.totalPaid || 0;
+    const totalFine = Number(issue.fineAmount || 0);
+    const balance = Math.max(0, totalFine - totalPaid);
+
+    if (balance <= 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "This fine is already fully paid",
+      });
+    }
+
+    if (amount > balance) {
+      return res.status(400).json({
+        status: 400,
+        message: `Maximum payable amount is ₹${balance}`,
+      });
+    }
+
+    const receiptNumber = `FINE-${Date.now()}`;
+
+    const payment = await FinePayment.create({
+      receiptNumber,
+      issueId: issue._id,
+      studentId: issue.studentId,
+      bookId: issue.bookId,
+      amountPaid: amount,
+      paymentDate: paymentDate || new Date(),
+      paymentMode,
+      transactionId: transactionId || "",
+      remarks: remarks || "",
+    });
+
+    const newPaid = totalPaid + amount;
+    const remainingBalance = Math.max(0, totalFine - newPaid);
+
+    res.status(201).json({
+      status: 201,
+      message: "Fine payment collected successfully",
+      data: payment,
+      totalFine,
+      totalPaid: newPaid,
+      balance: remainingBalance,
+      paymentStatus:
+        remainingBalance === 0 ? "Paid" : "Partial",
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+
+// GET: Fine payment history
+router.get("/fine-collections", async (req, res) => {
+  try {
+    const { studentId, issueId } = req.query;
+
+    const filter = { status: true };
+
+    if (studentId) filter.studentId = studentId;
+    if (issueId) filter.issueId = issueId;
+
+    const data = await FinePayment.find(filter)
+      .populate("studentId")
+      .populate("bookId", "bookName bookCode")
+      .populate("issueId", "issueDate dueDate returnDate fineAmount")
+      .sort({ paymentDate: -1 });
+
+    res.status(200).json({
+      status: 200,
+      message: "Fine collection history fetched successfully",
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+});
+
+
+// SEARCH BOOK USING BARCODE / QR CODE
+router.get("/book/barcode/:code", async (req, res) => {
+  try {
+    const code = req.params.code.trim();
+
+    const book = await Book.findOne({
+      $or: [
+        { bookCode: code },
+        { isbn: code }
+      ],
+      status: true
+    }).populate("categoryId", "categoryName");
+
+    if (!book) {
+      return res.status(404).json({
+        status: 404,
+        message: "Book not found"
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: "Book found successfully",
+      data: book
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: error.message
+    });
+  }
+});
+
+
 
 module.exports = router;
