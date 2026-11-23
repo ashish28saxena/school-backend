@@ -1,25 +1,104 @@
 const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
+
 const cors = require("cors");
 const path = require("path");
+const helmet = require("helmet");
+const mongoSanitize = require("express-mongo-sanitize");
+
+
+const { apiLimiter } = require("./middleware/security");
+const { verifyToken } = require("./middleware/auth");
 
 const app = express();
+
+// ========================================
+// BASIC SECURITY
+// ========================================
+
+app.disable("x-powered-by");
+
+// If hosted behind a proxy, configure trust proxy
+// according to your hosting provider's topology.
+app.set("trust proxy", 1);
+
+app.use(helmet());
+
+// ========================================
+// CORS
+// ========================================
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://school-management-beta-seven.vercel.app",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow Postman/server-to-server requests without Origin
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+    allowedHeaders: ["Content-Type", "Authorization"],
+
+    maxAge: 86400,
+  })
+);
+
+// ========================================
+// BODY PARSERS
+// ========================================
+
+app.use(express.json({ limit: "1mb" }));
+
+app.use(
+  express.urlencoded({
+    extended: false,
+    limit: "1mb",
+  })
+);
+
+// ========================================
+// SECURITY MIDDLEWARE
+// ========================================
+
+
+
+// app.use(
+//   mongoSanitize({
+//     replaceWith: "_",
+//   })
+// );
+
+// ========================================
+// STATIC FILES
+// ========================================
+
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://school-management-beta-seven.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
 
+// ========================================
+// API RATE LIMITING
+// ========================================
+
+app.use("/api", apiLimiter);
+
+// ========================================
+// MONGODB CONNECTION
+// ========================================
 
 let cached = global.mongoose;
 
@@ -51,6 +130,7 @@ async function connectDB() {
 
   try {
     cached.conn = await cached.promise;
+
     console.log("MongoDB connected successfully");
 
     return cached.conn;
@@ -64,7 +144,10 @@ async function connectDB() {
   }
 }
 
-// Health check
+// ========================================
+// HEALTH CHECK
+// ========================================
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -72,13 +155,17 @@ app.get("/", (req, res) => {
   });
 });
 
-// Connect to MongoDB BEFORE running API routes
+// ========================================
+// DATABASE MIDDLEWARE
+// ========================================
+
 app.use(async (req, res, next) => {
   try {
     await connectDB();
     next();
   } catch (error) {
-     console.error("MongoDB connection error:", error);
+    console.error("MongoDB connection error:", error.message);
+
     return res.status(500).json({
       success: false,
       message: "Database connection failed",
@@ -86,25 +173,28 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Import routes
-const authRoute = require("./routes/auth");
-const userRoute= require("./routes/user");
-const roleRoute= require("./routes/role")
-const classRouter= require("./routes/class")
-const studentRouter= require("./routes/student");
-const attendenceRouter=require("./routes/attendence");
-const subjectRouter=require("./routes/subject");
-const teacherRouter=require("./routes/teacher");
+// ========================================
+// IMPORT ROUTES
+// ========================================
+
+const authRoutes = require("./routes/Auth");
+const userRoute = require("./routes/user");
+const roleRoute = require("./routes/role");
+const classRouter = require("./routes/class");
+const studentRouter = require("./routes/student");
+const attendenceRouter = require("./routes/attendence");
+const subjectRouter = require("./routes/subject");
+const teacherRouter = require("./routes/teacher");
 const sectionRouter = require("./routes/section");
 const assignSubjectRouter = require("./routes/assignSubject");
 const assignClassRouter = require("./routes/assignClass");
-const TeacherAttendance=require("./routes/teacherAttendance");
+const TeacherAttendance = require("./routes/teacherAttendance");
 const teacherSalaryRoutes = require("./routes/TeacherSalaryRoutes");
 const studentAttendanceRoutes = require("./routes/StudentAttendanceRoutes");
 const assignClassTeacher = require("./routes/AssignClassTeacher");
 const assignStudentRoutes = require("./routes/AssignStudent");
 const timetableRoutes = require("./routes/Timetable");
-const examMark= require("./routes/ExamMark")
+const examMark = require("./routes/ExamMark");
 const examRoutes = require("./routes/Exam");
 const examScheduleRoutes = require("./routes/ExamSchedule");
 const examResultRoutes = require("./routes/ExamResult");
@@ -121,27 +211,44 @@ const libraryRoutes = require("./routes/Library");
 const libraryExtrasRoutes = require("./routes/LibraryExtras");
 const transportRoutes = require("./routes/Transport");
 const parentRoutes = require("./routes/Parent");
+const dashboardRoutes = require("./routes/Dashboard");
 
-// Register routes AFTER the database middleware
-app.use("/api/auth", authRoute);
+// ========================================
+// PUBLIC AUTH ROUTES
+// ========================================
+
+// Login, Register, Roles, Me
+app.use("/api/auth", authRoutes);
+
+// ========================================
+// JWT PROTECTION
+// ALL APIs BELOW REQUIRE VALID TOKEN
+// ========================================
+
+app.use("/api", verifyToken);
+
+// ========================================
+// PROTECTED API ROUTES
+// ========================================
+
 app.use("/api/user", userRoute);
 app.use("/api/role", roleRoute);
-app.use("/api/class",classRouter);
-app.use("/api/student",studentRouter);
-app.use("/api/attendence",attendenceRouter);
-app.use("/api/subject",subjectRouter);
-app.use("/api/teacher",teacherRouter);
+app.use("/api/class", classRouter);
+app.use("/api/student", studentRouter);
+app.use("/api/attendence", attendenceRouter);
+app.use("/api/subject", subjectRouter);
+app.use("/api/teacher", teacherRouter);
 app.use("/api/section", sectionRouter);
-app.use("/api/assignsubject",assignSubjectRouter);
-app.use("/api/assignclass",assignClassRouter);
-app.use("/api/teacherAttendance",TeacherAttendance);
+app.use("/api/assignsubject", assignSubjectRouter);
+app.use("/api/assignclass", assignClassRouter);
+app.use("/api/teacherAttendance", TeacherAttendance);
 app.use("/api/teachersalary", teacherSalaryRoutes);
-app.use("/api/studentattendance",studentAttendanceRoutes);
-app.use("/api/assignclassteacher",assignClassTeacher);
+app.use("/api/studentattendance", studentAttendanceRoutes);
+app.use("/api/assignclassteacher", assignClassTeacher);
 app.use("/api/assignstudent", assignStudentRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/exam", examRoutes);
-app.use("/api/exammark",examMark)
+app.use("/api/exammark", examMark);
 app.use("/api/examschedule", examScheduleRoutes);
 app.use("/api/examresult", examResultRoutes);
 app.use("/api/reportcard", reportCardRoutes);
@@ -157,8 +264,34 @@ app.use("/api/library", libraryRoutes);
 app.use("/api/library-extra", libraryExtrasRoutes);
 app.use("/api/transport", transportRoutes);
 app.use("/api/parent", parentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
-// Export Express app for Vercel
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+
+app.use((err, req, res, next) => {
+  console.error("API Error:", err.message);
+
+  if (err.message === "Origin not allowed by CORS") {
+    return res.status(403).json({
+      success: false,
+      message: "Origin not allowed",
+    });
+  }
+
+  return res.status(err.status || 500).json({
+    success: false,
+    message:
+      process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : err.message,
+  });
+});
+
+// ========================================
+// SERVER
+// ========================================
 
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
@@ -167,4 +300,5 @@ if (require.main === module) {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }
+
 module.exports = app;

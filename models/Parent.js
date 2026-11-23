@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 
 const parentSchema = new mongoose.Schema(
   {
+    userId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
     parentName: {
       type: String,
       required: true,
