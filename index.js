@@ -100,6 +100,10 @@ app.use("/api", apiLimiter);
 // MONGODB CONNECTION
 // ========================================
 
+// ========================================
+// MONGODB CONNECTION
+// ========================================
+
 let cached = global.mongoose;
 
 if (!cached) {
@@ -122,6 +126,7 @@ async function connectDB() {
     }
 
     cached.promise = mongoose.connect(uri, {
+      retryWrites: false, // FIX
       serverSelectionTimeoutMS: 15000,
       connectTimeoutMS: 15000,
       bufferCommands: false,
@@ -212,6 +217,21 @@ const libraryExtrasRoutes = require("./routes/LibraryExtras");
 const transportRoutes = require("./routes/Transport");
 const parentRoutes = require("./routes/Parent");
 const dashboardRoutes = require("./routes/Dashboard");
+const studentPromotionRoutes = require("./routes/studentPromotion");
+
+
+
+const permissionRoutes = require("./routes/permissionRoutes");
+const rolePermissionRoutes = require("./routes/rolePermissionRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
+const leaveTypeRoutes = require("./routes/leaveTypeRoutes");
+const leaveBalanceRoutes = require("./routes/leaveBalanceRoutes");
+const leaveApprovalRoutes = require("./routes/leaveApprovalRoutes");
+const leaveReportRoutes = require("./routes/leaveReportRoutes");
+const holidayRoutes = require("./routes/holidayRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const homeworkRoutes = require("./routes/homeworkRoutes");
+const homeworkSubmissionRoutes = require("./routes/homeworkSubmissionRoutes");
 
 // ========================================
 // PUBLIC AUTH ROUTES
@@ -265,7 +285,22 @@ app.use("/api/library-extra", libraryExtrasRoutes);
 app.use("/api/transport", transportRoutes);
 app.use("/api/parent", parentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/studentpromotion", studentPromotionRoutes);
 
+
+app.use("/api/permission", permissionRoutes);
+app.use("/api/rolepermission", rolePermissionRoutes);
+app.use("/api/leave", leaveRoutes);
+
+app.use("/api/leavetype", leaveTypeRoutes);
+app.use("/api/leavebalance", leaveBalanceRoutes);
+app.use("/api/leave-approval", leaveApprovalRoutes);
+app.use("/api/leavereport", leaveReportRoutes);
+app.use("/api/holiday", holidayRoutes);
+
+app.use("/api/notification", notificationRoutes);
+app.use("/api/homework", homeworkRoutes);
+app.use("/api/homework-submission", homeworkSubmissionRoutes);
 // ========================================
 // GLOBAL ERROR HANDLER
 // ========================================
